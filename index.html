@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
-
-
 <meta name="robots" content="noindex, nofollow, noai, noimageai">
 <meta name="googlebot" content="noindex, nofollow, noai">
 <meta name="GPTBot" content="noindex, nofollow">
@@ -27,8 +25,7 @@
     }
   });
 </script>
-
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>蚊子模擬器：夜襲</title>
 <style>
 :root{--bg:#0b0d12;--fg:#f2efe9;--accent:#e23b3b;--panel:rgba(10,12,18,.72);color-scheme:dark}
@@ -47,7 +44,7 @@ canvas{display:block;width:100%;height:100%}
 #vig{position:absolute;inset:0;box-shadow:inset 0 0 0 rgba(255,0,0,0);transition:box-shadow .2s}
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,6,10,.82);text-align:center;padding:24px}
 #ov div{max-width:460px}#ov h1{margin:0 0 8px;font-size:30px}#ov p{opacity:.85;line-height:1.6;margin:8px 0}
-html,body,canvas{touch-action:none;-webkit-user-select:none;user-select:none}
+html,body,canvas{touch-action:none;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 #note{position:absolute;left:50%;top:60px;transform:translateX(-50%);font-size:14px;padding:4px 12px;background:var(--panel);border-radius:14px;display:none;white-space:nowrap}
 #touch{position:absolute;inset:0;display:none}
 #joy{position:absolute;left:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
@@ -313,6 +310,11 @@ mq.rotation.order='YXZ';mq.traverse(o=>{if(o.isMesh)o.castShadow=true});S.add(mq
 const P=new THREE.Vector3(5,1.8,3),V=new THREE.Vector3();let yaw=.8,pitch=0,blood=0,tleft=150,run=false,biting=false,cur=null;
 const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>K[e.code]=0);
 let lookId=null,lx=0,ly=0,joyX=0,joyY=0,tUp=0,tDn=0,tBite=0;
+// 封鎖縮放、雙擊放大、長按選單
+['gesturestart','gesturechange','gestureend','contextmenu','dblclick','selectstart'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+let lastTap=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTap<400&&e.target.tagName!=='BUTTON')e.preventDefault();lastTap=n},{passive:false});
+document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
 R.domElement.addEventListener('pointerdown',e=>{lookId=e.pointerId;lx=e.clientX;ly=e.clientY});
 addEventListener('pointermove',e=>{if(e.pointerId===lookId&&run){const k=e.pointerType==='touch'?.008:.005;yaw-=(e.clientX-lx)*k;pitch=Math.max(-1.2,Math.min(1.2,pitch-(e.clientY-ly)*k));lx=e.clientX;ly=e.clientY}});
 ['pointerup','pointercancel'].forEach(t=>addEventListener(t,e=>{if(e.pointerId===lookId)lookId=null}));
