@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+
+
+<meta name="robots" content="noindex, nofollow, noai, noimageai">
+<meta name="googlebot" content="noindex, nofollow, noai">
+<meta name="GPTBot" content="noindex, nofollow">
+<meta name="ChatGPT-User" content="noindex, nofollow">
+<meta name="ClaudeBot" content="noindex, nofollow">
+<meta name="PerplexityBot" content="noindex, nofollow">
+
+<script>
+  // 禁用右鍵
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+
+  // 禁用快捷鍵 (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S)
+  document.addEventListener('keydown', function(e) {
+    if (
+      e.key === 'F12' || 
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) ||
+      (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>蚊子模擬器：夜襲</title>
+<style>
+:root{--bg:#0b0d12;--fg:#f2efe9;--accent:#e23b3b;--panel:rgba(10,12,18,.72);color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,"PingFang TC","Noto Sans TC",sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.bar{position:absolute;left:16px;top:16px;width:min(300px,50vw)}
+.bar div.t{font-size:13px;opacity:.85;margin-bottom:4px}
+.track{height:12px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden}
+#blood{height:100%;width:0;background:linear-gradient(90deg,#8a0f1c,#e23b3b)}
+#time{position:absolute;right:16px;top:16px;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+#warn{position:absolute;left:50%;top:22%;transform:translateX(-50%);text-align:center;display:none;font-size:22px;font-weight:700;color:#ff5a5a}
+#warn .track{width:240px;margin:8px auto 0}#wb{height:100%;background:#ff5a5a;width:0}
+#hint{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);padding:6px 14px;background:var(--panel);border-radius:20px;display:none}
+#help{position:absolute;left:16px;bottom:16px;font-size:12px;opacity:.7;line-height:1.5}
+#vig{position:absolute;inset:0;box-shadow:inset 0 0 0 rgba(255,0,0,0);transition:box-shadow .2s}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,6,10,.82);text-align:center;padding:24px}
+#ov div{max-width:460px}#ov h1{margin:0 0 8px;font-size:30px}#ov p{opacity:.85;line-height:1.6;margin:8px 0}
+html,body,canvas{touch-action:none;-webkit-user-select:none;user-select:none}
+#note{position:absolute;left:50%;top:60px;transform:translateX(-50%);font-size:14px;padding:4px 12px;background:var(--panel);border-radius:14px;display:none;white-space:nowrap}
+#touch{position:absolute;inset:0;display:none}
+#joy{position:absolute;left:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:30px;top:30px;width:66px;height:66px;border-radius:50%;background:rgba(255,255,255,.35)}
+.tb{position:absolute;right:24px;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);font-size:24px;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none}
+button{font:inherit;font-weight:700;padding:12px 28px;border:0;border-radius:24px;background:var(--accent);color:#fff;cursor:pointer;margin-top:10px}
+</style></head><body>
+<div id="hud">
+ <div id="vig"></div>
+ <div class="bar"><div class="t">🩸 吸血量</div><div class="track"><div id="blood"></div></div></div>
+ <div id="time">150</div>
+ <div id="warn">⚠ 人類覺得癢，要拍落來了！快飛走！<div class="track"><div id="wb"></div></div></div>
+ <div id="hint">按住 F 吸血</div>
+ <div id="help">W/S 前後・A/D 左右・空白鍵 上升・C 下降・拖曳滑鼠/方向鍵 轉向・按住 F 吸血</div>
+ <div id="note"></div>
+ <div id="touch"><div id="joy"><div id="knob"></div></div><div class="tb" id="bu" style="bottom:calc(150px + env(safe-area-inset-bottom,0px))">⬆</div><div class="tb" id="bd" style="bottom:calc(100px + env(safe-area-inset-bottom,0px));right:104px">⬇</div><div class="tb" id="bb" style="bottom:calc(40px + env(safe-area-inset-bottom,0px));width:84px;height:84px;background:rgba(226,59,59,.6)">🩸</div></div>
+</div>
+<div id="ov"><div><h1>🦟 夜襲</h1><p id="msg">你是一隻飢餓的母蚊。在限時內，飛入屋內找到三個人類，吸滿血液。<br>吸血會令人類發癢，癢到極點他就會出手拍你——看到警告就立刻飛離！他們也會留意嗡嗡聲、轉頭找你，甚至拿起電蚊拍主動攻擊。</p><button id="go">開始</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+R.shadowMap.enabled=true;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.1;
+document.body.prepend(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color(0x14161c);S.fog=new THREE.Fog(0x14161c,6,18);
+const cam=new THREE.PerspectiveCamera(65,1,.02,50);
+function resize(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+
+// lights
+S.add(new THREE.HemisphereLight(0x8899bb,0x332a22,.55));
+const moon=new THREE.DirectionalLight(0x9fb4ff,.7);moon.position.set(8,3,1);moon.target.position.set(0,1,0);moon.castShadow=true;
+moon.shadow.mapSize.set(1024,1024);Object.assign(moon.shadow.camera,{left:-8,right:8,top:6,bottom:-6,near:1,far:20});S.add(moon,moon.target);
+const lamp=new THREE.PointLight(0xffc27a,1.1,9);lamp.position.set(-5.2,1.3,-0.5);S.add(lamp);
+const tvl=new THREE.PointLight(0x6fa8ff,.9,6);tvl.position.set(3.5,1.2,-3.4);S.add(tvl);
+const dl=new THREE.PointLight(0xdfe8ff,.6,4);dl.position.set(-3,1.4,3.2);S.add(dl);
+
+// helpers
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.8},o));
+function box(w,h,d,x,y,z,c,p=S,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),o?o:M(c));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m}
+// wood floor texture
+const cv=document.createElement('canvas');cv.width=cv.height=512;const g=cv.getContext('2d');
+for(let i=0;i<8;i++){g.fillStyle=`hsl(28,${35+Math.random()*8}%,${28+Math.random()*8}%)`;g.fillRect(0,i*64,512,62);
+ for(let k=0;k<30;k++){g.strokeStyle='rgba(0,0,0,.08)';g.beginPath();const y=i*64+Math.random()*60;g.moveTo(0,y);g.lineTo(512,y+Math.random()*3);g.stroke()}}
+const ft=new THREE.CanvasTexture(cv);ft.wrapS=ft.wrapT=THREE.RepeatWrapping;ft.repeat.set(3,2);
+const fl=new THREE.Mesh(new THREE.PlaneGeometry(12,8),M(0xffffff,{map:ft,roughness:.55}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;S.add(fl);
+const ceil=new THREE.Mesh(new THREE.PlaneGeometry(12,8),M(0xb8b4aa));ceil.rotation.x=Math.PI/2;ceil.position.y=3.2;S.add(ceil);
+const W=M(0xcdc5b4);
+box(12,3.2,.1,0,1.6,-4,0,S,W);box(12,3.2,.1,0,1.6,4,0,S,W);box(.1,3.2,8,-6,1.6,0,0,S,W);
+// east wall with window gap
+box(.1,3.2,2.6,6,1.6,-2.7,0,S,W);box(.1,3.2,2.6,6,1.6,2.7,0,S,W);box(.1,1,2.8,6,2.7,0,0,S,W);box(.1,.9,2.8,6,.45,0,0,S,W);
+const win=new THREE.Mesh(new THREE.PlaneGeometry(2.8,1.3),new THREE.MeshBasicMaterial({color:0x2a3a66}));win.rotation.y=-Math.PI/2;win.position.set(6.02,1.4,0);S.add(win);
+box(1.7,.12,2.2,-1,.01,0,0,S,M(0x7a3b3b)); // rug
+// bed
+box(1.7,.35,2.2,-3.8,.18,-2.2,0,S,M(0x5a4332));box(1.6,.2,2.1,-3.8,.45,-2.2,0,S,M(0xe8e2d6));
+box(1.0,.12,.4,-3.8,.6,-3.0,0,S,M(0xffffff));box(.1,1.0,2.3,-4.7,.5,-2.2,0,S,M(0x5a4332));
+box(.4,.5,.4,-5.4,.25,-3.5,0,S,M(0x6b4a30)); // nightstand
+// sofa + tv
+box(1.9,.45,.9,3.5,.23,.9,0,S,M(0x4a5a6a));box(1.9,.6,.2,3.5,.65,1.3,0,S,M(0x42515f));
+box(.2,.6,.9,2.5,.5,.9,0,S,M(0x42515f));box(.2,.6,.9,4.5,.5,.9,0,S,M(0x42515f));
+box(2,.4,.5,3.5,.2,-3.6,0,S,M(0x3a2a20));
+box(1.6,.9,.06,3.5,1.1,-3.9,0,S,new THREE.MeshBasicMaterial({color:0x7fb2ff}));
+// desk + chair
+box(1.6,.06,.7,-3,.75,3.5,0,S,M(0x8a6a48));[[-3.7,3.2],[-2.3,3.2],[-3.7,3.8],[-2.3,3.8]].forEach(p=>box(.06,.75,.06,p[0],.37,p[1],0,S,M(0x5a4332)));
+box(.6,.4,.04,-3,1.0,3.7,0,S,new THREE.MeshBasicMaterial({color:0xaad4ff}));
+box(.45,.05,.45,-3,.45,2.55,0,S,M(0x222222));box(.45,.5,.06,-3,.7,2.3,0,S,M(0x222222));
+// door
+box(1,2.2,.06,-1,1.1,-3.93,0,S,M(0x6b4a30));
+
+// humans
+const SK=0xe0ac8c;
+function humanOld(pose,x,z,ry,cloth,fuse){
+ const H=new THREE.Group();const skins=[];
+ const mk=(w,h,d,px,py,pz,c)=>box(w,h,d,px,py,pz,c,H);
+ const mark=(px,py,pz)=>{const o=new THREE.Object3D();o.position.set(px,py,pz);H.add(o);skins.push(o)};
+ let head;
+ if(pose==='sit'){
+  mk(.42,.55,.24,0,.85,0,cloth);head=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),M(SK));head.position.set(0,1.28,.03);head.castShadow=true;H.add(head);
+  [-.11,.11].forEach(s=>{mk(.15,.15,.5,s,.5,.25,0x2d3a52);mk(.12,.45,.12,s,.25,.5,SK);mk(.1,.3,.1,s*2.5,.92,.05,cloth);mk(.09,.09,.32,s*2.5,.78,.25,SK)});
+  mark(-.275,.78,.3);mark(.275,.78,.3);mark(-.11,.28,.5);mark(.11,.28,.5);
+ }else{
+  mk(.42,.6,.22,0,1.1,0,cloth);head=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),M(SK));head.position.set(0,1.55,0);head.castShadow=true;H.add(head);
+  [-.11,.11].forEach(s=>{mk(.13,.5,.13,s,.55,0,0x2d3a52);mk(.11,.4,.11,s,.2,0,SK);mk(.1,.3,.1,s*2.6,1.2,0,cloth);mk(.09,.4,.09,s*2.6,.85,0,SK)});
+  mark(-.285,.85,0);mark(.285,.85,0);mark(-.11,.2,0);mark(.11,.2,0);
+ }
+ H.position.set(x,pose==='lie'?.62:0,z);H.rotation.y=ry;
+ if(pose==='lie'){H.rotation.set(-Math.PI/2,0,0)}
+ S.add(H);
+ return{G:H,head,skins,fuse,itch:0,state:'calm',t:0,mult:1,target:new THREE.Vector3(),base:H.position.y,pose,ct:0};
+}
+
+const flip=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI),qq=new THREE.Quaternion(),tv=new THREE.Vector3(),upv=y=>new THREE.Vector3(0,y,0);
+const limb=(len,r1,r2,mat)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,12),mat);m.position.y=-len/2;m.castShadow=true;return m};
+const bl=(r,mat,x=0,y=0,z=0,sx=1,sy=1,sz=1)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;return m};
+function mkHand(s,sk){const g=new THREE.Group();box(.085,.09,.028,0,-.05,0,0,g,sk);
+ [[-.03,.06],[-.01,.07],[.01,.068],[.03,.056]].forEach(([x,l])=>{const f=new THREE.Group();f.position.set(x,-.095,0);f.rotation.x=-.3;box(.017,l,.017,0,-l/2,0,0,f,sk);g.add(f)});
+ const t=new THREE.Group();t.position.set(s*.045,-.03,0);t.rotation.z=s*.7;box(.02,.055,.02,0,-.028,0,0,t,sk);g.add(t);return g}
+function mkFoot(sk,slip){const g=new THREE.Group();box(.085,.05,.2,0,-.03,.05,0,g,sk);g.add(bl(.04,sk,0,-.03,-.03));
+ [.022,.016,.015,.014,.012].forEach((w,i)=>box(w,.018,.03,-.032+i*.016,-.045,.17,0,g,sk));
+ if(slip){box(.105,.022,.25,0,-.062,.06,0,g,M(0x2a2a2a));box(.1,.02,.08,0,-.035,.05,0,g,M(0x2a2a2a))}return g}
+function mkSw(x,y,z,ry){const g=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2288ff,emissiveIntensity:.6,transparent:true,opacity:.6});
+ box(.035,.24,.035,0,0,0,0,g,M(0x111111));box(.22,.3,.025,0,.25,0,0,g,M(0xdd5522));box(.18,.26,.03,0,.25,0,0,g,m);g.userData.m=m;g.scale.setScalar(1.2);g.position.set(x,y,z);g.rotation.order='YXZ';g.rotation.set(Math.PI,ry,0);box(.05,.03,.05,x,y+.17,z,0,S,M(0xb08d3c));S.add(g);return g}
+function human(pose,x,z,ry,cloth,fuse,pants,hairc,skinc,slip,swp){
+ const SK=M(skinc,{roughness:.55}),CL=M(cloth),PN=M(pants),HR=M(hairc,{roughness:.9});
+ const G=new THREE.Group(),sit=pose==='sit',hips=new THREE.Group(),sk=[],eyes=[];hips.position.y=sit?.5:.92;G.add(hips);
+ hips.add(bl(.17,PN,0,0,0,1,.7,.7));
+ const tor=new THREE.Mesh(new THREE.CylinderGeometry(.19,.165,.5,14),CL);tor.position.y=.27;tor.scale.z=.62;tor.castShadow=true;hips.add(tor);
+ const head=new THREE.Group();head.position.y=.57;head.rotation.order='YXZ';hips.add(head);
+ const nk=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.12,10),SK);nk.position.y=-.03;head.add(nk);
+ head.add(bl(.105,SK,0,.12,0,.92,1.15,1));
+ const wh=M(0xf4f4f0),ir=M(0x2a1a10),lp=M(0xa05a5a);
+ [-1,1].forEach(s=>{const e=new THREE.Group();e.position.set(s*.038,.145,.088);e.add(bl(.019,wh,0,0,0,1,.8,.6),bl(.01,ir,0,0,.011));head.add(e);eyes.push(e);
+  box(.045,.008,.012,s*.04,.18,.094,0,head,HR);head.add(bl(.022,SK,s*.098,.12,0,.45,1,.8))});
+ head.add(bl(.017,SK,0,.115,.105,.8,1.2,1));box(.05,.007,.01,0,.065,.097,0,head,lp);
+ const hr=new THREE.Mesh(new THREE.SphereGeometry(.113,16,10,0,Math.PI*2,0,Math.PI*.5),HR);hr.position.set(0,.125,-.012);hr.scale.set(.93,1.15,1.03);hr.rotation.x=-.45;head.add(hr);
+ let shR,elR,hR;const ths=[],kns=[],shs=[],els=[];
+ [-1,1].forEach(s=>{
+  const th=new THREE.Group();th.position.set(s*.1,0,0);th.add(limb(.42,.078,.06,PN));hips.add(th);
+  const kn=new THREE.Group();kn.position.y=-.42;th.add(kn);kn.add(bl(.058,PN),limb(.44,.056,.04,SK),bl(.05,SK,0,-.12,-.015,1,1.3,1));
+  const an=new THREE.Group();an.position.y=-.44;kn.add(an);an.add(mkFoot(SK,slip));
+  const mk=new THREE.Object3D();mk.position.y=-.2;kn.add(mk);sk.push(mk);
+  if(sit){th.rotation.x=-Math.PI/2;kn.rotation.x=Math.PI/2}else th.rotation.z=s*.03;ths.push(th);kns.push(kn);
+  const sh=new THREE.Group();sh.position.set(s*.215,.49,0);hips.add(sh);sh.add(bl(.058,CL),limb(.3,.045,.04,SK),limb(.13,.055,.05,CL));
+  const el=new THREE.Group();el.position.y=-.3;sh.add(el);el.add(bl(.04,SK),limb(.26,.04,.03,SK));
+  const wr=new THREE.Group();wr.position.y=-.26;el.add(wr);wr.add(bl(.03,SK),mkHand(s,SK));
+  const m2=new THREE.Object3D();m2.position.y=-.13;el.add(m2);sk.push(m2);shs.push(sh);els.push(el);
+  if(sit){sh.rotation.x=-.5;el.rotation.x=-1.0;wr.rotation.x=-.3}else{sh.rotation.z=s*.1;el.rotation.x=-.2}
+  if(s===1){shR=sh;elR=el;const q=new THREE.Object3D();q.position.y=-.07;wr.add(q);hR=q}
+ });
+ G.position.set(x,pose==='lie'?.62:0,z);G.rotation.order='YXZ';G.rotation.y=ry;if(pose==='lie')G.rotation.set(-Math.PI/2,ry,0);S.add(G);
+ return{G,hips,head,eyes,skins:sk,fuse,itch:0,state:'calm',t:0,mult:1,target:new THREE.Vector3(),base:G.position.y,pose,shR,elR,hR,ths,kns,shs,els,sit,stand:0,wantStand:false,sub:0,wi:0,walkAmt:0,ph:0,armBase:shR.rotation.x,aw:0,armed:false,asleep:pose==='lie',sw:mkSw(...swp),rest:new THREE.Vector3(...swp),vis:null};
+}
+const humans=[human('lie',-3.8,-1.2,0,0x3a5a8a,18,0x2d3a52,0x1a1410,0xd9a283,false,[-5.92,1.3,-2,Math.PI/2]),
+ human('sit',3.5,.85,Math.PI,0x8a3a3a,10,0x555555,0x3a2a1a,0xe8b898,true,[5.92,1.3,2,-Math.PI/2]),
+ human('sit',-3,2.55,Math.PI,0x3a7a5a,8,0x2d2d3a,0x111111,0xc99372,true,[-1.8,1.3,3.92,Math.PI])];
+Object.assign(humans[0],{rise:[1.1,0,0],wps:[[-5.2,-.5]],dest:[-5.33,-2]});
+Object.assign(humans[1],{rise:[0,0,-.6],wps:[[5.1,-.3]],dest:[5.33,2]});
+Object.assign(humans[2],{rise:[.8,0,0],wps:[],dest:[-1.8,3.31]});
+humans.forEach(h=>h.swq=h.sw.quaternion.clone());
+function pose(h){const e=h.stand*h.stand*(3-2*h.stand),L=(a,b)=>a+(b-a)*e,w=h.walkAmt,sw=Math.sin(h.ph)*.55*w;
+ h.hips.position.y=h.sit?L(.5,.92):.92;
+ h.ths.forEach((t,i)=>t.rotation.x=(h.sit?L(-Math.PI/2,0):0)+(i?sw:-sw));
+ h.kns.forEach((k,i)=>k.rotation.x=(h.sit?L(Math.PI/2,0):0)+Math.max(0,i?-sw:sw)*1.1);
+ if(!h.sit){h.G.rotation.x=L(-Math.PI/2,0);if(!h.asleep)h.G.position.y=L(.62,0)}
+ if(!h.freed){if(h.stand>=1)h.freed=true;else{h.G.position.x=h.home.x+h.rise[0]*e;h.G.position.z=h.home.z+h.rise[2]*e}}}
+function resetHumans(){humans.forEach(h=>{if(!h.home){h.home=h.G.position.clone();h.hy0=h.G.rotation.y}
+ Object.assign(h,{itch:0,state:'calm',mult:1,t:0,aw:0,armed:false,asleep:!h.sit,stand:0,wantStand:false,sub:0,wi:0,freed:false,walkAmt:0,ph:0});
+ h.G.position.copy(h.home);h.G.rotation.y=h.hy0;h.sw.position.copy(h.rest);h.sw.quaternion.copy(h.swq);h.head.rotation.set(0,0,0);pose(h)});hand.visible=false}
+function humanLogic2(dt){let warn=null,note='';
+ humans.forEach((h,i)=>{
+  if(!h.home){h.home=h.G.position.clone();h.hy0=h.G.rotation.y}
+  const G=h.G;h.stand=Math.max(0,Math.min(1,h.stand+(h.wantStand?1:-1)*dt*1.1));
+  G.updateMatrixWorld(true);const hp=h.head.getWorldPosition(new THREE.Vector3()),d=hp.distanceTo(P);let moving=false;
+  const face=(tx,tz,r)=>{let df=Math.atan2(tx-G.position.x,tz-G.position.z)-G.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));G.rotation.y+=df*Math.min(1,dt*r)};
+  const mv=(tx,tz,sp)=>{const dx=tx-G.position.x,dz=tz-G.position.z,dist=Math.hypot(dx,dz);if(dist<.04)return true;const st=Math.min(dist,sp*dt);G.position.x=Math.max(-5.6,Math.min(5.6,G.position.x+dx/dist*st));G.position.z=Math.max(-3.6,Math.min(3.6,G.position.z+dz/dist*st));face(tx,tz,8);moving=true;h.ph+=dt*sp*5;return false};
+  if(h.asleep){if(h.itch>25){h.asleep=false;h.mult=1.6;h.wantStand=true;h.aw=Math.max(h.aw,1.5)}}
+  else{
+   h.aw=Math.max(0,Math.min(4,h.aw+(d<2.4?(.25+V.length()*.25+(h.itch>20?.5:0)+(biting&&cur===h?.3:0)):-.15)*dt));
+   const l=G.worldToLocal(P.clone()),dx=l.x,dy=l.y-(h.hips.position.y+.69),dz=l.z;
+   let ty=Math.sin(T*.6+i*2)*.5,tx=.05;
+   if(h.aw>=1||h.state!=='calm'){ty=Math.max(-1.3,Math.min(1.3,Math.atan2(dx,dz)));tx=Math.max(-.7,Math.min(.7,-Math.atan2(dy,Math.hypot(dx,dz))))}
+   const k=1-Math.exp(-(1.5+h.aw*1.5)*dt);h.head.rotation.y+=(ty-h.head.rotation.y)*k;h.head.rotation.x+=(tx-h.head.rotation.x)*k}
+  h.eyes.forEach(e=>e.scale.y+=((h.asleep?.08:1)-e.scale.y)*Math.min(1,dt*8));
+  const e=h.stand*h.stand*(3-2*h.stand),bx=h.sit?-.5*(1-e):0,eb=h.sit?-1+.8*e:-.2;let ax=bx,ex=eb,rate=10;
+  if(!h.asleep){const st=h.state;
+   if(st==='calm'){
+    if(biting&&cur===h)h.itch+=(100/h.fuse)*h.mult*dt;else h.itch=Math.max(0,h.itch-6*dt);
+    if(h.itch>=100||(h.armed&&h.aw>1.5&&d<2.2)){h.state='alert';h.t=0;h.target.copy(P)}
+    else if(!h.armed&&h.aw>2.5){h.state='fetch';h.sub=0;h.wi=0;h.t2=0;h.wantStand=true}
+    else if(h.armed&&h.stand>=1){const dx=P.x-G.position.x,dz=P.z-G.position.z,hd=Math.hypot(dx,dz);if(hd<5&&hd>1.2)mv(P.x,P.z,1.1);else if(hd<=5)face(P.x,P.z,4)}
+   }else if(st==='fetch'){
+    if(h.sub===0){if(h.stand>=1)h.sub=1}
+    else if(h.sub===1){const wp=h.wps[h.wi];if(mv(wp?wp[0]:h.dest[0],wp?wp[1]:h.dest[1],1.3)){if(wp)h.wi++;else{h.sub=2;h.t2=0}}}
+    else{h.t2+=dt;face(h.rest.x,h.rest.z,6);ax=bx+(-1.25-bx)*Math.min(1,h.t2/.6);ex=-.2;if(h.t2>=.8){h.armed=true;h.state='calm';h.t=0}}
+   }else if(st==='alert'){h.t+=dt;if(h.t<1.1)h.target.copy(P);const a=Math.min(h.t/1.1,1),tx=h.target.x,tz=h.target.z;
+    face(tx,tz,6);
+    if(h.stand>=.99){const dx=tx-G.position.x,dz=tz-G.position.z,hd=Math.hypot(dx,dz),w=h.armed?.7:.5;if(hd>w)mv(tx-dx/hd*w,tz-dz/hd*w,1.5)}
+    ax=bx+(-2.9-bx)*a;ex=-.5*a;warn=h;
+    if(h.t>=1.6){
+     const l=G.worldToLocal(h.target.clone()),vx=l.x-.215,vy=l.y-(h.hips.position.y+.49),vz=l.z;
+     const sa=Math.max(-2.8,Math.min(-.2,-(Math.PI/2+Math.atan2(vy,Math.hypot(vx,vz)))));h.sa=sa;
+     const px=h.shR.rotation.x,pe=h.elR.rotation.x;h.shR.rotation.x=sa;h.elR.rotation.x=-.1;G.updateMatrixWorld(true);
+     let hitp=h.hR.getWorldPosition(new THREE.Vector3());
+     if(h.armed){h.hR.getWorldQuaternion(qq);h.sw.quaternion.copy(qq).multiply(flip);h.sw.position.copy(hitp);h.sw.updateMatrixWorld(true);hitp=h.sw.localToWorld(new THREE.Vector3(0,.3,0))}
+     h.shR.rotation.x=px;h.elR.rotation.x=pe;h.state='swat';h.t=0;zap(h.armed);
+     if(P.distanceTo(hitp)<(h.armed?.55:.38))end(false,'💀 '+(h.armed?'滋——！你被電蚊拍電死了。':'啪！你被拍扁了。')+'<br>吸血量 '+Math.floor(blood)+'%')}
+   }else if(st==='swat'){h.t+=dt;ax=h.sa;ex=-.1;rate=30;if(h.t>.5){h.state='cool';h.t=0;h.itch=40;h.mult=Math.min(2.5,h.mult*1.3);h.aw=Math.max(h.aw,3)}}
+   else if(st==='cool'){h.t+=dt;if(h.t>(h.armed?2:3.5))h.state='calm'}
+  }
+  if(h.armed){if(h.state==='calm'||h.state==='cool')ax=bx-.7;h.hR.getWorldPosition(h.sw.position);h.hR.getWorldQuaternion(qq);h.sw.quaternion.copy(qq).multiply(flip)}
+  else if(h.state==='calm'||(h.state==='fetch'&&h.sub<2))ax-=Math.sin(h.ph)*.5*h.walkAmt;
+  const rk=Math.min(1,dt*rate);h.shR.rotation.x+=(ax-h.shR.rotation.x)*rk;h.elR.rotation.x+=(ex-h.elR.rotation.x)*rk;
+  h.shs[0].rotation.x=bx+Math.sin(h.ph)*.5*h.walkAmt;h.els[0].rotation.x=eb;
+  h.walkAmt+=((moving?1:0)-h.walkAmt)*Math.min(1,dt*8);pose(h);
+  h.sw.userData.m.emissiveIntensity=h.state==='alert'&&h.armed?2+Math.sin(T*40):(h.state==='swat'&&h.armed?4:.6);
+  if(h.state==='fetch')note='🚶 有人起身去拿電蚊拍了！';else if(h.armed&&!note)note='⚡ 有人手持電蚊拍，小心！';else if(!h.asleep&&h.aw>=1&&!note)note='👀 有人覺察到嗡嗡聲，正在找你';
+ });
+ const n=$('note');n.textContent=note;n.style.display=note?'block':'none';return warn}
+function zap(e){if(!ac)return;const t=ac.currentTime,o=ac.createOscillator(),g2=ac.createGain();o.type=e?'square':'triangle';o.frequency.setValueAtTime(e?1200:220,t);o.frequency.exponentialRampToValueAtTime(e?90:50,t+.3);g2.gain.setValueAtTime(.14,t);g2.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g2).connect(ac.destination);o.start();o.stop(t+.3)}
+function humanLogic(dt){let warn=null,note='';
+ humans.forEach((h,i)=>{
+  h.G.updateMatrixWorld(true);const hp=h.head.getWorldPosition(new THREE.Vector3()),d=hp.distanceTo(P);
+  if(h.asleep){if(h.itch>25){h.asleep=false;h.mult=1.6}}
+  else{
+   h.aw=Math.max(0,Math.min(4,h.aw+(d<2.4?(.25+V.length()*.25+(h.itch>20?.5:0)+(biting&&cur===h?.3:0)):-.15)*dt));
+   const l=h.G.worldToLocal(P.clone()),dx=l.x,dy=l.y-(h.hips.position.y+.69),dz=l.z;
+   let ty=Math.sin(T*.6+i*2)*.5,tx=.05;
+   if(h.aw>=1||h.state!=='calm'){ty=Math.max(-1.3,Math.min(1.3,Math.atan2(dx,dz)));tx=Math.max(-.7,Math.min(.7,-Math.atan2(dy,Math.hypot(dx,dz))))}
+   const k=1-Math.exp(-(1.5+h.aw*1.5)*dt);h.head.rotation.y+=(ty-h.head.rotation.y)*k;h.head.rotation.x+=(tx-h.head.rotation.x)*k}
+  h.eyes.forEach(e=>e.scale.y+=((h.asleep?.08:1)-e.scale.y)*Math.min(1,dt*8));
+  let ax=h.armBase;
+  if(!h.asleep){
+   if(h.state==='calm'){
+    if(biting&&cur===h)h.itch+=(100/h.fuse)*h.mult*dt;else h.itch=Math.max(0,h.itch-6*dt);
+    const hunt=h.armed&&h.aw>1.5&&d<1.9;
+    if(h.itch>=100||hunt){h.state='alert';h.t=0;h.target.copy(P);h.vis=h.armed?h.sw:hand;h.vis.visible=true}
+    else if(!h.armed&&h.aw>2.5){h.state='fetch';h.t=0}
+   }else if(h.state==='fetch'){h.t+=dt;const a=Math.min(h.t/1.6,1);ax=h.armBase-1.3*Math.sin(a*Math.PI/2);h.sw.position.lerpVectors(h.rest,h.hR.getWorldPosition(tv),a);if(h.t>=1.6){h.armed=true;h.state='calm';h.t=0}}
+   else if(h.state==='alert'){h.t+=dt;if(h.t<1.1)h.target.copy(P);const a=Math.min(h.t/1.1,1),v=h.vis;ax=h.armBase-2.4*a;
+    v.position.copy(hp).add(upv(.5)).lerp(tv.copy(h.target).add(upv(.38)),a);
+    if(h.armed)v.rotation.set(Math.PI,0,0);else v.rotation.y=T*3;warn=h;
+    if(h.t>=1.6){v.position.copy(h.target).add(upv(h.armed?.25:0));h.state='swat';h.t=0;zap(h.armed);if(P.distanceTo(h.target)<(h.armed?.8:.55))end(false,'💀 '+(h.armed?'滋——！你被電蚊拍電死了。':'啪！你被拍扁了。')+'<br>吸血量 '+Math.floor(blood)+'%')}}
+   else if(h.state==='swat'){h.t+=dt;ax=h.armBase-.9;if(h.t>.5){if(!h.armed)hand.visible=false;h.state='cool';h.t=0;h.itch=40;h.mult=Math.min(2.5,h.mult*1.3);h.aw=Math.max(h.aw,3)}}
+   else if(h.state==='cool'){h.t+=dt;if(h.t>(h.armed?2.5:4))h.state='calm'}
+   if(h.armed&&(h.state==='calm'||h.state==='cool')){ax=h.armBase-.7;h.hR.getWorldPosition(h.sw.position);h.hR.getWorldQuaternion(qq);h.sw.quaternion.copy(qq).multiply(flip)}
+  }
+  h.shR.rotation.x+=(ax-h.shR.rotation.x)*Math.min(1,dt*10);
+  h.sw.userData.m.emissiveIntensity=h.state==='alert'?2+Math.sin(T*40):(h.state==='swat'?4:.6);
+  if(h.state==='fetch')note='🔌 有人去拿電蚊拍了！';else if(h.armed&&!note)note='⚡ 有人手持電蚊拍，小心！';else if(!h.asleep&&h.aw>=1&&!note)note='👀 有人覺察到嗡嗡聲，正在找你';
+ });
+ const n=$('note');n.textContent=note;n.style.display=note?'block':'none';return warn}
+humans[2].G.rotation.y=0; // faces +z toward desk
+humans[2].G.position.z=2.6;
+// hand
+const hand=new THREE.Mesh(new THREE.BoxGeometry(.2,.05,.24),M(SK));hand.visible=false;hand.castShadow=true;S.add(hand);
+
+// mosquito
+const mq=new THREE.Group();const mb=M(0x2a2622,{roughness:.6});
+const thx=new THREE.Mesh(new THREE.SphereGeometry(.0125,16,12),M(0x4a3d33,{roughness:.55}));thx.scale.set(1,1.05,1.55);thx.position.set(0,.002,-.012);mq.add(thx);
+const scu=new THREE.Mesh(new THREE.SphereGeometry(.0126,12,8),M(0xc8b58c,{roughness:.6}));scu.scale.set(.18,.5,1.2);scu.position.set(0,.011,-.012);mq.add(scu);
+const mqL=new THREE.PointLight(0xffffff,.25,1.2);mqL.position.set(0,.15,.2);mq.add(mqL);
+const abd=new THREE.Group();abd.position.set(0,-.001,.006);mq.add(abd);
+const abdDark=M(0x2a2019,{roughness:.6}),abdPale=M(0xc9b27a,{roughness:.6});
+for(let i=0;i<8;i++){const r=.0085-i*.0005,seg=new THREE.Mesh(new THREE.CylinderGeometry(r*.92,r,.0085,10),i%2?abdPale:abdDark);seg.rotation.x=Math.PI/2;seg.position.z=.005+i*.0082;seg.scale.set(1,1,.85);abd.add(seg)}
+const hd=new THREE.Mesh(new THREE.SphereGeometry(.0065,12,10),M(0x2a2019));hd.position.set(0,0,-.039);mq.add(hd);
+[-1,1].forEach(s=>{const ey=new THREE.Mesh(new THREE.SphereGeometry(.0042,10,8),M(0x1a1410,{roughness:.2,metalness:.3}));ey.position.set(s*.0048,.001,-.041);mq.add(ey);
+ const p=new THREE.Mesh(new THREE.CylinderGeometry(.0009,.0006,.03,5),M(0x2a2019));p.rotation.x=Math.PI/2;p.position.set(s*.0022,-.003,-.058);mq.add(p)});
+const am=new THREE.LineBasicMaterial({color:0x201814});[-1,1].forEach(s=>mq.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(s*.003,.004,-.043),new THREE.Vector3(s*.012,.012,-.07),new THREE.Vector3(s*.02,.016,-.095)]),am)));
+const pro=new THREE.Mesh(new THREE.CylinderGeometry(.0008,.0004,.05,6),M(0x15110e));pro.rotation.x=Math.PI/2-.12;pro.position.set(0,-.004,-.067);mq.add(pro);
+const wc=document.createElement('canvas');wc.width=256;wc.height=64;const wx=wc.getContext('2d');
+wx.beginPath();wx.moveTo(0,36);wx.bezierCurveTo(60,2,190,6,256,30);wx.bezierCurveTo(190,54,70,62,0,36);wx.fillStyle='rgba(205,222,255,.3)';wx.fill();
+wx.strokeStyle='rgba(35,28,24,.85)';wx.lineWidth=2;wx.stroke();wx.lineWidth=1.2;
+[[4,35,250,30],[60,32,200,13],[60,38,200,50],[110,31,235,20],[110,36,235,44]].forEach(l=>{wx.beginPath();wx.moveTo(l[0],l[1]);wx.lineTo(l[2],l[3]);wx.stroke()});
+const wm=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(wc),transparent:true,side:THREE.DoubleSide,depthWrite:false});
+const wg=new THREE.PlaneGeometry(.075,.022);wg.translate(.0375,0,0);wg.rotateX(-Math.PI/2);wg.rotateY(-.45);
+const wl=new THREE.Mesh(wg,wm);wl.position.set(.004,.0155,-.012);const wr=new THREE.Mesh(wg,wm);wr.scale.x=-1;wr.position.set(-.004,.0155,-.012);mq.add(wl,wr);
+const lm=M(0x1c1612,{roughness:.6});
+[[-.02,.028,.012,-.05,.05,-.03,-.075],[-.006,.04,.014,-.01,.055,-.038,.008],[.008,.034,.014,.035,.03,-.046,.1]].forEach(a=>[-1,1].forEach(s=>{const c=new THREE.CatmullRomCurve3([new THREE.Vector3(s*.004,-.006,a[0]),new THREE.Vector3(s*a[1],a[2],a[3]),new THREE.Vector3(s*a[4],a[5],a[6])]);mq.add(new THREE.Mesh(new THREE.TubeGeometry(c,10,.0007,5),lm))}));
+
+mq.rotation.order='YXZ';mq.traverse(o=>{if(o.isMesh)o.castShadow=true});S.add(mq);
+
+// state
+const P=new THREE.Vector3(5,1.8,3),V=new THREE.Vector3();let yaw=.8,pitch=0,blood=0,tleft=150,run=false,biting=false,cur=null;
+const K={};addEventListener('keydown',e=>{K[e.code]=1;if(e.code==='Space')e.preventDefault()});addEventListener('keyup',e=>K[e.code]=0);
+let lookId=null,lx=0,ly=0,joyX=0,joyY=0,tUp=0,tDn=0,tBite=0;
+R.domElement.addEventListener('pointerdown',e=>{lookId=e.pointerId;lx=e.clientX;ly=e.clientY});
+addEventListener('pointermove',e=>{if(e.pointerId===lookId&&run){const k=e.pointerType==='touch'?.008:.005;yaw-=(e.clientX-lx)*k;pitch=Math.max(-1.2,Math.min(1.2,pitch-(e.clientY-ly)*k));lx=e.clientX;ly=e.clientY}});
+['pointerup','pointercancel'].forEach(t=>addEventListener(t,e=>{if(e.pointerId===lookId)lookId=null}));
+if('ontouchstart' in window||navigator.maxTouchPoints>0){$('touch').style.display='block';$('help').style.display='none';$('hint').textContent='按住 🩸 吸血'}
+const jy=$('joy'),kn=$('knob');function jm(e){const r=jy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),m=Math.min(1,Math.hypot(dx,dy)/50),a=Math.atan2(dy,dx);joyX=Math.cos(a)*m;joyY=Math.sin(a)*m;kn.style.transform=`translate(${joyX*32}px,${joyY*32}px)`}
+jy.addEventListener('pointerdown',e=>{jy.setPointerCapture(e.pointerId);jm(e)});jy.addEventListener('pointermove',e=>{if(jy.hasPointerCapture(e.pointerId))jm(e)});
+const jend=()=>{joyX=joyY=0;kn.style.transform=''};jy.addEventListener('pointerup',jend);jy.addEventListener('pointercancel',jend);
+function hold(id,fn){const el=$(id);el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);fn(1)});['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,()=>fn(0)))}
+hold('bu',v=>tUp=v);hold('bd',v=>tDn=v);hold('bb',v=>tBite=v);
+
+// audio
+let ac,osc,gn;function audio(){if(ac)return;ac=new (window.AudioContext||window.webkitAudioContext)();osc=ac.createOscillator();osc.type='sawtooth';osc.frequency.value=440;
+ const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=500;gn=ac.createGain();gn.gain.value=0;osc.connect(f).connect(gn).connect(ac.destination);osc.start()}
+function end(win,txt){run=false;$('ov').style.display='flex';$('msg').innerHTML=txt;$('go').textContent='再玩一次';if(gn)gn.gain.value=0;$('warn').style.display='none'}
+function reset(){P.set(5,1.8,3);V.set(0,0,0);yaw=.8;pitch=0;blood=0;tleft=150;resetHumans();run=true;$('ov').style.display='none';audio();if(ac)ac.resume()}
+$('go').onclick=reset;
+
+const fw=new THREE.Vector3(),rt=new THREE.Vector3(),tmp=new THREE.Vector3(),clk=new THREE.Clock();let T=0;
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);T+=dt;
+ // idle humans
+ humans.forEach((h,i)=>{if(h.asleep)h.G.position.y=h.base+Math.sin(T*1.2)*.008});
+ tvl.intensity=.8+Math.sin(T*7)*.15+Math.sin(T*2.3)*.1;
+ wl.rotation.z=Math.sin(T*220)*.8;wr.rotation.z=-wl.rotation.z;
+ if(run){
+  tleft-=dt;
+  if(K.ArrowLeft)yaw+=1.8*dt;if(K.ArrowRight)yaw-=1.8*dt;if(K.ArrowUp)pitch=Math.min(1.2,pitch+dt);if(K.ArrowDown)pitch=Math.max(-1.2,pitch-dt);
+  const f=(K.KeyW?1:0)-(K.KeyS?1:0)-joyY,s=(K.KeyD?1:0)-(K.KeyA?1:0)+joyX,u=(K.Space?1:0)+tUp-((K.KeyC||K.ShiftLeft)?1:0)-tDn;
+  fw.set(0,0,-1).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));rt.set(1,0,0).applyAxisAngle(THREE.Object3D.DefaultUp,yaw);
+  const sp=2.3*(1-.35*blood/100);tmp.set(0,0,0).addScaledVector(fw,f).addScaledVector(rt,s);tmp.y+=u;if(tmp.lengthSq()>0)tmp.normalize().multiplyScalar(sp);
+  tmp.x+=Math.sin(T*9)*.12;tmp.y+=Math.cos(T*11)*.12;
+  V.lerp(tmp,1-Math.exp(-5*dt));
+  // biting
+  cur=null;let best=.3;humans.forEach(h=>{h.G.updateMatrixWorld(true);h.skins.forEach(m=>{const d=m.getWorldPosition(tmp.clone()).distanceTo(P);if(d<best){best=d;cur=h}})});
+  biting=!!cur&&(K.KeyF||K.KeyE||tBite);$('hint').style.display=cur&&!biting?'block':'none';
+  if(biting){V.multiplyScalar(.85);blood+=5*dt}
+  P.addScaledVector(V,dt);P.x=Math.max(-5.8,Math.min(5.8,P.x));P.y=Math.max(.04,Math.min(3.1,P.y));P.z=Math.max(-3.8,Math.min(3.8,P.z));
+  // humans logic
+  let warn=humanLogic2(dt);if(0)
+  humans.forEach(h=>{
+   if(h.state==='calm'){ if(biting&&cur===h)h.itch+=(100/h.fuse)*h.mult*dt;else h.itch=Math.max(0,h.itch-6*dt);
+     if(h.itch>=100){h.state='alert';h.t=0;h.target.copy(P);hand.visible=true}}
+   else if(h.state==='alert'){h.t+=dt;if(h.t<1.1)h.target.copy(P);
+     const a=Math.min(h.t/1.1,1),from=h.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.5,0));
+     hand.position.copy(from).lerp(tmp.copy(h.target).add(new THREE.Vector3(0,.35,0)),a);hand.rotation.y=T*3;warn=h;
+     if(h.t>=1.6){hand.position.copy(h.target);h.state='swat';h.t=0;if(P.distanceTo(h.target)<.55){end(false,'💀 啪！你被拍扁了。<br>吸血量 '+Math.floor(blood)+'%');}}}
+   else if(h.state==='swat'){h.t+=dt;if(h.t>.5){hand.visible=false;h.state='cool';h.t=0;h.itch=40;h.mult=Math.min(2.5,h.mult*1.3)}}
+   else if(h.state==='cool'){h.t+=dt;if(h.t>4)h.state='calm'}
+  });
+  $('warn').style.display=warn?'block':'none';if(warn){$('wb').style.width=Math.min(100,warn.t/1.6*100)+'%'}
+  $('vig').style.boxShadow=warn?'inset 0 0 160px rgba(255,0,0,.55)':'inset 0 0 0 rgba(255,0,0,0)';
+  $('blood').style.width=Math.min(100,blood)+'%';$('time').textContent=Math.max(0,Math.ceil(tleft));
+  abd.scale.set(1+blood/130,1+blood/80,1+blood/200);abdPale.color.setRGB(.79-.45*blood/100,.7-.62*blood/100,.48-.4*blood/100);abdDark.color.setRGB(.16+.3*blood/100,.125-.08*blood/100,.1-.07*blood/100);
+  if(blood>=100)end(true,'🩸 吃飽了！你成功吸滿血液，剩餘時間 '+Math.ceil(tleft)+' 秒。');
+  else if(tleft<=0)end(false,'⏰ 時間到，你仲未吸夠血……');
+  // audio
+  if(gn&&run){let m=9;humans.forEach(h=>m=Math.min(m,h.G.position.distanceTo(P)));gn.gain.value=.05*Math.max(.15,1-m/5);osc.frequency.value=430+V.length()*20+Math.sin(T*30)*8}
+ }
+ mq.position.copy(P);mq.rotation.set(pitch*.6,yaw,0);
+ // camera
+ const cf=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
+ const cp=P.clone().addScaledVector(cf,-.5).add(new THREE.Vector3(0,.14,0));
+ cp.x=Math.max(-5.9,Math.min(5.9,cp.x));cp.y=Math.max(.05,Math.min(3.15,cp.y));cp.z=Math.max(-3.9,Math.min(3.9,cp.z));
+ cam.position.lerp(cp,1-Math.exp(-12*dt));cam.lookAt(P.clone().addScaledVector(cf,.5));
+ R.render(S,cam)}
+cam.position.set(5,2,3.5);loop();
+</script></body></html>
